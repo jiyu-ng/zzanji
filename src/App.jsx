@@ -65,7 +65,17 @@ function Ledger({ myPerson }) {
     if (!error && data) setEntries(data);
     setLoading(false);
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    // 탭 다시 볼 때 자동 새로고침
+    const onVis = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVis);
+    // 실시간: 짠지봇/다른 기기에서 바뀌면 바로 반영
+    const ch = supabase.channel("ledger-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ledger" }, () => load())
+      .subscribe();
+    return () => { document.removeEventListener("visibilitychange", onVis); supabase.removeChannel(ch); };
+  }, [load]);
 
   const monthEntries = useMemo(() => entries.filter((e) => (e.date || "").startsWith(month)), [entries, month]);
   const totals = useMemo(() => {
@@ -132,6 +142,7 @@ function Ledger({ myPerson }) {
         <div style={{ fontSize: 26 }}>🥬</div>
         <h1 style={h1}>짠지</h1>
         <p style={{ margin: "3px 0 0", color: "#b3a99a", fontSize: 12.5 }}>유찬이네 가계부 · {myPerson}</p>
+        <button style={refreshBtn} onClick={load} title="새로고침">{loading ? "⏳" : "🔄"}</button>
         <button style={logoutBtn} onClick={() => supabase.auth.signOut()}>로그아웃</button>
       </header>
 
@@ -371,6 +382,7 @@ const wrap = { maxWidth: 520, margin: "0 auto", minHeight: "100vh", background: 
 const head = { textAlign: "center", padding: "24px 0 8px", position: "relative" };
 const h1 = { fontSize: 22, fontWeight: 800, margin: "4px 0 0" };
 const logoutBtn = { position: "absolute", top: 20, right: 4, background: "none", border: "none", color: "#b3a99a", fontSize: 12, cursor: "pointer", textDecoration: "underline" };
+const refreshBtn = { position: "absolute", top: 16, left: 4, background: "none", border: "none", fontSize: 18, cursor: "pointer", lineHeight: 1 };
 const tabBar = { display: "flex", gap: 8, marginBottom: 14 };
 const tabBtn = { flex: 1, padding: "10px 0", borderRadius: 12, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 14.5, fontWeight: 700, cursor: "pointer" };
 const tabBtnOn = { background: "#4a4438", color: "#fff", borderColor: "#4a4438" };
