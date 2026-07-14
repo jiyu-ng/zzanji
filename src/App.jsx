@@ -108,10 +108,14 @@ function Ledger({ myPerson }) {
 
   // 개인 용돈: 내가 대상인 지출 (RLS로 상대 개인지출은 애초에 안 옴)
   const myPersonal = useMemo(() => {
-    const list = monthEntries.filter((e) => e.type === "expense" && e.beneficiary === myPerson);
-    const spent = list.reduce((s, e) => s + e.amount, 0);
+    const list = monthEntries.filter((e) => e.beneficiary === myPerson);
+    const spent = list.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
     return { list, spent, remain: ALLOWANCE - spent, pct: Math.min(100, Math.round((spent / ALLOWANCE) * 100)) };
   }, [monthEntries, myPerson]);
+  // 용돈 통장 실제 잔고 = 누적 입금(충전) − 지출
+  const myBalance = useMemo(() =>
+    entries.filter((e) => e.beneficiary === myPerson).reduce((s, e) => s + (e.type === "income" ? e.amount : -e.amount), 0),
+  [entries, myPerson]);
 
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
 
@@ -242,25 +246,31 @@ function Ledger({ myPerson }) {
         </>
       ) : (
         <>
-          {/* 개인 용돈 탭 */}
+          {/* 용돈 통장 잔고 */}
+          <section style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: 12.5, color: "#8a8170", fontWeight: 600, marginBottom: 4 }}>💳 {myPerson} 용돈 통장 잔고</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: myBalance < 0 ? "#d9663f" : "#4a4438" }}>{won(myBalance)}</div>
+          </section>
+
+          {/* 이번 달 용돈 사용 */}
           <section style={card}>
-            <h2 style={h2}>{myPerson} 개인 용돈</h2>
+            <h2 style={h2}>이번 달 용돈 사용</h2>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: myPersonal.remain < 0 ? "#d9663f" : "#4a4438" }}>{won(myPersonal.spent)}</span>
-              <span style={{ fontSize: 13, color: "#8a8170" }}>/ {won(ALLOWANCE)}</span>
+              <span style={{ fontSize: 13, color: "#8a8170" }}>/ {won(ALLOWANCE)} 예산</span>
             </div>
             <div style={{ ...barTrack, height: 12 }}>
               <div style={{ ...barFill, width: `${myPersonal.pct}%`, background: myPersonal.pct >= 100 ? "#d9663f" : myPersonal.pct >= 80 ? "#e0a04a" : "#63c187" }} />
             </div>
             <p style={{ margin: "10px 2px 0", fontSize: 13, color: myPersonal.remain < 0 ? "#d9663f" : "#8a8170", fontWeight: 600 }}>
-              {myPersonal.remain >= 0 ? `이번 달 ${won(myPersonal.remain)} 남았어요` : `예산을 ${won(-myPersonal.remain)} 초과했어요 😰`}
+              {myPersonal.remain >= 0 ? `예산 ${won(myPersonal.remain)} 남았어요` : `예산을 ${won(-myPersonal.remain)} 초과했어요 😰`}
             </p>
           </section>
 
           <section style={card}>
-            <h2 style={h2}>내 개인 지출 <span style={{ color: "#b3a99a", fontSize: 13, fontWeight: 500 }}>{myPersonal.list.length}건</span></h2>
+            <h2 style={h2}>내 용돈 내역 <span style={{ color: "#b3a99a", fontSize: 13, fontWeight: 500 }}>{myPersonal.list.length}건</span></h2>
             {myPersonal.list.length === 0 ? (
-              <p style={empty}>이번 달 개인 지출이 없어요. 알뜰하시네요! 🥬</p>
+              <p style={empty}>이번 달 용돈 내역이 없어요. 알뜰하시네요! 🥬</p>
             ) : (
               myPersonal.list.map((e) => (
                 <div key={e.id} style={entryRow}>
@@ -269,7 +279,7 @@ function Ledger({ myPerson }) {
                     <div style={{ fontSize: 14.5, fontWeight: 600 }}>{e.item || e.category}</div>
                     <div style={{ fontSize: 11.5, color: "#b3a99a" }}>{e.date?.slice(5).replace("-", ".")} · {e.category}</div>
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: "#4a4438", whiteSpace: "nowrap" }}>-{won(e.amount).replace("₩", "")}</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>{e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}</span>
                   <button onClick={() => remove(e.id)} style={delBtn}>×</button>
                 </div>
               ))
