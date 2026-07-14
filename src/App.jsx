@@ -12,6 +12,7 @@ const CAT_COLOR = ["#e8865a", "#5aa7e8", "#63c187", "#c77dd6", "#e0b64a", "#e872
 // 지출 대상(누구를 위해). 대표님/현욱님 = 개인 지출(본인 용돈), 나머지 = 공용.
 const BENEFICIARIES = ["온가족", "부부", "유찬이", "대표님", "현욱님"];
 const BEN_EMOJI = { 온가족: "👨‍👩‍👦", 부부: "💑", 유찬이: "👶", 대표님: "👩", 현욱님: "👨" };
+const WHO_EMOJI = { 대표님: "👩", 현욱님: "👨" };
 const PERSONAL = ["대표님", "현욱님"]; // 개인 용돈에 카운트되는 대상
 const isPersonal = (e) => PERSONAL.includes(e.beneficiary); // 개인 용돈 지출 여부
 const ALLOWANCE = 500000; // 1인 월 개인 용돈 예산
@@ -117,6 +118,19 @@ function Ledger({ myPerson }) {
     entries.filter((e) => e.beneficiary === myPerson).reduce((s, e) => s + (e.type === "income" ? e.amount : -e.amount), 0),
   [entries, myPerson]);
 
+  // [분석] 탭: 카드별/주체별/대상별 (이번 달 지출)
+  const analysis = useMemo(() => {
+    const exp = monthEntries.filter((e) => e.type === "expense");
+    const total = exp.reduce((s, e) => s + e.amount, 0);
+    const grp = (field, fallback) => {
+      const map = {};
+      for (const e of exp) { const k = e[field] || fallback; map[k] = (map[k] || 0) + e.amount; }
+      const arr = Object.entries(map).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
+      return { arr, max: arr.length ? arr[0].v : 0 };
+    };
+    return { total, byCard: grp("card", "미지정"), byWho: grp("who", "미지정"), byBen: grp("beneficiary", "미지정") };
+  }, [monthEntries]);
+
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
 
   const submit = async () => {
@@ -155,7 +169,7 @@ function Ledger({ myPerson }) {
 
       {/* 탭 */}
       <div style={tabBar}>
-        {[["ledger", "📒 가계부"], ["allowance", "💵 용돈"]].map(([t, label]) => (
+        {[["ledger", "📒 가계부"], ["allowance", "💵 용돈"], ["analysis", "📊 분석"]].map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{ ...tabBtn, ...(tab === t ? tabBtnOn : {}) }}>{label}</button>
         ))}
       </div>
@@ -167,7 +181,7 @@ function Ledger({ myPerson }) {
         <button style={arrow} onClick={() => setMonth((m) => shiftMonth(m, 1))} disabled={month >= curMonth()}>›</button>
       </div>
 
-      {tab === "ledger" ? (
+      {tab === "ledger" && (
         <>
           {/* 요약 */}
           <div style={summaryRow}>
@@ -244,7 +258,8 @@ function Ledger({ myPerson }) {
             )}
           </section>
         </>
-      ) : (
+      )}
+      {tab === "allowance" && (
         <>
           {/* 용돈 통장 잔고 */}
           <section style={{ ...card, textAlign: "center" }}>
@@ -287,6 +302,18 @@ function Ledger({ myPerson }) {
           </section>
 
           <p style={{ ...empty, fontSize: 12 }}>🔒 배우자의 개인 지출은 프라이버시라서 보이지 않아요.</p>
+        </>
+      )}
+      {tab === "analysis" && (
+        <>
+          <div style={{ ...balanceCard, marginBottom: 14 }}>
+            <span style={{ color: "#8a8170", fontSize: 13 }}>이번 달 전체 지출</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#4a4438" }}>{won(analysis.total)}</span>
+          </div>
+          <BarChart title="💳 카드별 지출" data={analysis.byCard} total={analysis.total} />
+          <BarChart title="👤 소비 주체별 (누가 썼나)" data={analysis.byWho} total={analysis.total} emoji={WHO_EMOJI} />
+          <BarChart title="🎯 소비 대상별 (누구 위해)" data={analysis.byBen} total={analysis.total} emoji={BEN_EMOJI} />
+          <p style={{ ...empty, fontSize: 12 }}>* 나에게 보이는 지출 기준 (배우자 개인 지출 제외)</p>
         </>
       )}
 
@@ -390,6 +417,31 @@ function NotAllowed({ email }) {
   );
 }
 
+// 분석 탭 막대 차트
+function BarChart({ title, data, total, emoji }) {
+  return (
+    <section style={card}>
+      <h2 style={h2}>{title}</h2>
+      {data.arr.length === 0 ? (
+        <p style={empty}>이번 달 내역이 없어요.</p>
+      ) : (
+        data.arr.map((r, i) => (
+          <div key={r.k} style={{ marginBottom: 11 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, marginBottom: 4 }}>
+              <span>{emoji && emoji[r.k] ? emoji[r.k] + " " : ""}{r.k}
+                {total ? <span style={{ color: "#b3a99a", fontSize: 12 }}> · {Math.round((r.v / total) * 100)}%</span> : null}</span>
+              <span style={{ fontWeight: 700 }}>{won(r.v)}</span>
+            </div>
+            <div style={barTrack}>
+              <div style={{ ...barFill, width: `${(r.v / data.max) * 100}%`, background: CAT_COLOR[i % CAT_COLOR.length] }} />
+            </div>
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
 // ── 스타일 ──
 const wrap = { maxWidth: 520, margin: "0 auto", minHeight: "100vh", background: "#faf7f2", color: "#4a4438", fontFamily: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif', padding: "0 16px 90px", position: "relative" };
 const head = { textAlign: "center", padding: "24px 0 8px", position: "relative" };
@@ -397,7 +449,7 @@ const h1 = { fontSize: 22, fontWeight: 800, margin: "4px 0 0" };
 const logoutBtn = { position: "absolute", top: 20, right: 4, background: "none", border: "none", color: "#b3a99a", fontSize: 12, cursor: "pointer", textDecoration: "underline" };
 const refreshBtn = { position: "absolute", top: 16, left: 4, background: "none", border: "none", fontSize: 18, cursor: "pointer", lineHeight: 1 };
 const tabBar = { display: "flex", gap: 8, marginBottom: 14 };
-const tabBtn = { flex: 1, padding: "10px 0", borderRadius: 12, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 14.5, fontWeight: 700, cursor: "pointer" };
+const tabBtn = { flex: 1, padding: "10px 0", borderRadius: 12, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 13, fontWeight: 700, cursor: "pointer" };
 const tabBtnOn = { background: "#4a4438", color: "#fff", borderColor: "#4a4438" };
 const monthBar = { display: "flex", alignItems: "center", justifyContent: "center", gap: 18, margin: "0 0 16px" };
 const arrow = { width: 34, height: 34, borderRadius: 10, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 20, cursor: "pointer" };
