@@ -58,6 +58,7 @@ export default function App() {
 
 function Ledger({ myPerson }) {
   const [entries, setEntries] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(curMonth());
   const [tab, setTab] = useState("ledger");
@@ -67,8 +68,12 @@ function Ledger({ myPerson }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("ledger").select("*").order("date", { ascending: false }).order("created_at", { ascending: false });
-    if (!error && data) setEntries(data);
+    const [led, ast] = await Promise.all([
+      supabase.from("ledger").select("*").order("date", { ascending: false }).order("created_at", { ascending: false }),
+      supabase.from("asset_snapshot").select("*").order("date", { ascending: false }),
+    ]);
+    if (!led.error && led.data) setEntries(led.data);
+    if (!ast.error && ast.data) setAssets(ast.data);
     setLoading(false);
   }, []);
   useEffect(() => {
@@ -128,6 +133,19 @@ function Ledger({ myPerson }) {
     return { exp, total: exp.reduce((s, e) => s + e.amount, 0) };
   }, [monthEntries]);
 
+  // [자산] 탭: 계좌별 최신 스냅샷 + 총자산 + 추이
+  const asset = useMemo(() => {
+    const byAcct = {};
+    for (const a of assets) { if (!byAcct[a.account]) byAcct[a.account] = a; } // date desc → 첫 등장이 최신
+    const latest = Object.values(byAcct);
+    const totalKRW = latest.reduce((s, a) => s + (Number(a.total_eval) || 0) + (Number(a.deposit) || 0), 0);
+    const profitKRW = latest.reduce((s, a) => s + (Number(a.profit) || 0), 0);
+    const byDate = {};
+    for (const a of assets) { byDate[a.date] = (byDate[a.date] || 0) + (Number(a.total_eval) || 0) + (Number(a.deposit) || 0); }
+    const trend = Object.entries(byDate).map(([d, v]) => ({ d, v })).sort((a, b) => (a.d < b.d ? -1 : 1)).slice(-7);
+    return { latest, totalKRW, profitKRW, trend, max: Math.max(1, ...trend.map((t) => t.v)) };
+  }, [assets]);
+
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
 
   const submit = async () => {
@@ -171,7 +189,7 @@ function Ledger({ myPerson }) {
 
       {/* 탭 */}
       <div style={tabBar}>
-        {[["ledger", "📒 가계부"], ["allowance", "💵 용돈"], ["analysis", "📊 분석"]].map(([t, label]) => (
+        {[["ledger", "📒 가계부"], ["allowance", "💵 용돈"], ["analysis", "📊 분석"], ["asset", "💎 자산"]].map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{ ...tabBtn, ...(tab === t ? tabBtnOn : {}) }}>{label}</button>
         ))}
       </div>
@@ -316,6 +334,59 @@ function Ledger({ myPerson }) {
           <DonutChart title="👤 소비 주체별 (누가 썼나)" field="who" exp={analysis.exp} />
           <DonutChart title="🎯 소비 대상별 (누구 위해)" field="beneficiary" exp={analysis.exp} />
           <p style={{ ...empty, fontSize: 12 }}>💡 항목을 누르면 자세히 볼 수 있어요 · 나에게 보이는 지출 기준</p>
+        </>
+      )}
+      {tab === "asset" && (
+        <>
+          {asset.latest.length === 0 ? (
+            <section style={card}><p style={empty}>아직 자산 스냅샷이 없어요.<br />토스증권 잔고가 매일 자동으로 쌓일 거예요 📈</p></section>
+          ) : (
+            <>
+              <section style={{ ...card, textAlign: "center", background: "linear-gradient(135deg,#4a4438,#6a5f4e)", border: "none", animation: "donutPop .6s cubic-bezier(.34,1.56,.64,1) both" }}>
+                <div style={{ fontSize: 12.5, color: "#e6ddd2", marginBottom: 4 }}>💎 총 자산</div>
+                <div style={{ fontSize: 30, fontWeight: 800, color: "#fff" }}>{won(asset.totalKRW)}</div>
+                <div style={{ fontSize: 13, marginTop: 6, fontWeight: 700, color: asset.profitKRW >= 0 ? "#8fe3ac" : "#ffab8f" }}>
+                  평가손익 {asset.profitKRW >= 0 ? "+" : ""}{won(asset.profitKRW)}
+                </div>
+              </section>
+              {asset.trend.length > 1 && (
+                <section style={card}>
+                  <h2 style={h2}>총자산 추이</h2>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 100, marginTop: 6 }}>
+                    {asset.trend.map((t) => (
+                      <div key={t.d} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                        <div style={{ fontSize: 9.5, color: "#8a8170" }}>{Math.round(t.v / 10000)}만</div>
+                        <div style={{ width: "66%", height: `${(t.v / asset.max) * 70}px`, minHeight: 3, background: "#63c187", borderRadius: 5 }} />
+                        <div style={{ fontSize: 10, color: "#b3a99a" }}>{t.d.slice(5)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+              {asset.latest.map((a) => (
+                <section key={a.id} style={card}>
+                  <h2 style={h2}>🏦 {a.account} <span style={{ color: "#b3a99a", fontSize: 12, fontWeight: 500 }}>{a.date}</span></h2>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13.5 }}><span style={{ color: "#8a8170" }}>총평가금액</span><span style={{ fontWeight: 800 }}>{won(Number(a.total_eval) || 0)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13.5 }}><span style={{ color: "#8a8170" }}>예수금</span><span style={{ fontWeight: 700 }}>{won(Number(a.deposit) || 0)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13.5 }}><span style={{ color: "#8a8170" }}>평가손익</span><span style={{ fontWeight: 700, color: (Number(a.profit) || 0) >= 0 ? "#3f8f52" : "#d9663f" }}>{(Number(a.profit) || 0) >= 0 ? "+" : ""}{won(Number(a.profit) || 0)}</span></div>
+                  {a.fx_rate ? <div style={{ fontSize: 11.5, color: "#b3a99a", marginTop: 6 }}>💵 ${Number(a.total_eval_usd || 0).toLocaleString("en-US")} · 환율 {Number(a.fx_rate).toLocaleString("ko-KR")}원</div> : null}
+                  {Array.isArray(a.holdings) && a.holdings.length > 0 && (
+                    <div style={{ marginTop: 10, borderTop: "1px solid #f2ebe3", paddingTop: 8 }}>
+                      <div style={{ fontSize: 12, color: "#8a8170", fontWeight: 700, marginBottom: 6 }}>보유 종목 {a.holdings.length}</div>
+                      {a.holdings.slice(0, 8).map((h, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0" }}>
+                          <span>{h.name || h.종목명 || "종목"}{h.currency === "USD" ? " 🇺🇸" : ""}</span>
+                          <span style={{ fontWeight: 600 }}>{won(Number(h.eval || h.value || 0))}</span>
+                        </div>
+                      ))}
+                      {a.holdings.length > 8 && <div style={{ fontSize: 11, color: "#b3a99a", marginTop: 4 }}>+{a.holdings.length - 8}종목 더</div>}
+                    </div>
+                  )}
+                </section>
+              ))}
+              <p style={{ ...empty, fontSize: 12 }}>📸 매일 07:10 자동 업데이트 · 🔒 로그인한 두 분만 조회</p>
+            </>
+          )}
         </>
       )}
 
@@ -517,8 +588,8 @@ const head = { textAlign: "center", padding: "24px 0 8px", position: "relative" 
 const h1 = { fontSize: 22, fontWeight: 800, margin: "4px 0 0" };
 const logoutBtn = { position: "absolute", top: 20, right: 4, background: "none", border: "none", color: "#b3a99a", fontSize: 12, cursor: "pointer", textDecoration: "underline" };
 const refreshBtn = { position: "absolute", top: 16, left: 4, background: "none", border: "none", fontSize: 18, cursor: "pointer", lineHeight: 1 };
-const tabBar = { display: "flex", gap: 8, marginBottom: 14 };
-const tabBtn = { flex: 1, padding: "10px 0", borderRadius: 12, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 13, fontWeight: 700, cursor: "pointer" };
+const tabBar = { display: "flex", gap: 6, marginBottom: 14 };
+const tabBtn = { flex: 1, padding: "9px 0", borderRadius: 11, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" };
 const tabBtnOn = { background: "#4a4438", color: "#fff", borderColor: "#4a4438" };
 const monthBar = { display: "flex", alignItems: "center", justifyContent: "center", gap: 18, margin: "0 0 16px" };
 const arrow = { width: 34, height: 34, borderRadius: 10, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 20, cursor: "pointer" };
