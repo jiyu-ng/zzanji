@@ -372,14 +372,19 @@ function Ledger({ myPerson }) {
                   {a.fx_rate ? <div style={{ fontSize: 11.5, color: "#b3a99a", marginTop: 6 }}>💵 ${Number(a.total_eval_usd || 0).toLocaleString("en-US")} · 환율 {Number(a.fx_rate).toLocaleString("ko-KR")}원</div> : null}
                   {Array.isArray(a.holdings) && a.holdings.length > 0 && (
                     <div style={{ marginTop: 10, borderTop: "1px solid #f2ebe3", paddingTop: 8 }}>
-                      <div style={{ fontSize: 12, color: "#8a8170", fontWeight: 700, marginBottom: 6 }}>보유 종목 {a.holdings.length}</div>
-                      {a.holdings.slice(0, 8).map((h, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0" }}>
-                          <span>{h.name || h.종목명 || "종목"}{h.currency === "USD" ? " 🇺🇸" : ""}</span>
-                          <span style={{ fontWeight: 600 }}>{won(Number(h.eval || h.value || 0))}</span>
-                        </div>
-                      ))}
-                      {a.holdings.length > 8 && <div style={{ fontSize: 11, color: "#b3a99a", marginTop: 4 }}>+{a.holdings.length - 8}종목 더</div>}
+                      <div style={{ fontSize: 12, color: "#8a8170", fontWeight: 700, marginBottom: 6 }}>보유 종목 {a.holdings.length} <span style={{ fontWeight: 500, color: "#b3a99a" }}>(평가액순)</span></div>
+                      {a.holdings
+                        .map((h) => ({ ...h, krw: h.currency === "USD" ? Number(h.eval || 0) * Number(a.fx_rate || 0) : Number(h.eval || 0) }))
+                        .sort((x, y) => y.krw - x.krw)
+                        .slice(0, 10)
+                        .map((h, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5, padding: "4px 0", borderBottom: "1px solid #f8f4ee" }}>
+                            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name || "종목"}{h.currency === "USD" ? " 🇺🇸" : ""}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, minWidth: 48, textAlign: "right", color: Number(h.rate) >= 0 ? "#3f8f52" : "#d9663f" }}>{Number(h.rate) >= 0 ? "+" : ""}{(Number(h.rate || 0) * 100).toFixed(1)}%</span>
+                            <span style={{ fontWeight: 700, minWidth: 76, textAlign: "right" }}>{won(Math.round(h.krw))}</span>
+                          </div>
+                        ))}
+                      {a.holdings.length > 10 && <div style={{ fontSize: 11, color: "#b3a99a", marginTop: 5 }}>+{a.holdings.length - 10}종목 더</div>}
                     </div>
                   )}
                 </section>
