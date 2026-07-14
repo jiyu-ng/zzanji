@@ -13,6 +13,7 @@ const CAT_COLOR = ["#e8865a", "#5aa7e8", "#63c187", "#c77dd6", "#e0b64a", "#e872
 const BENEFICIARIES = ["온가족", "부부", "유찬이", "대표님", "현욱님"];
 const BEN_EMOJI = { 온가족: "👨‍👩‍👦", 부부: "💑", 유찬이: "👶", 대표님: "👩", 현욱님: "👨" };
 const PERSONAL = ["대표님", "현욱님"]; // 개인 용돈에 카운트되는 대상
+const isPersonal = (e) => PERSONAL.includes(e.beneficiary); // 개인 용돈 지출 여부
 const ALLOWANCE = 500000; // 1인 월 개인 용돈 예산
 
 // 이메일 → 사람 매핑 (RLS의 current_person()과 동일 규칙)
@@ -78,25 +79,27 @@ function Ledger({ myPerson }) {
   }, [load]);
 
   const monthEntries = useMemo(() => entries.filter((e) => (e.date || "").startsWith(month)), [entries, month]);
+  // [가계부] 탭 = 공용 살림만 (개인 용돈은 [용돈] 탭에서 따로)
+  const household = useMemo(() => monthEntries.filter((e) => !isPersonal(e)), [monthEntries]);
   const totals = useMemo(() => {
     let expense = 0, income = 0;
-    for (const e of monthEntries) { if (e.type === "income") income += e.amount; else expense += e.amount; }
+    for (const e of household) { if (e.type === "income") income += e.amount; else expense += e.amount; }
     return { expense, income, balance: income - expense };
-  }, [monthEntries]);
+  }, [household]);
 
   const byCategory = useMemo(() => {
     const map = {};
-    for (const e of monthEntries) { if (e.type === "expense") map[e.category] = (map[e.category] || 0) + e.amount; }
+    for (const e of household) { if (e.type === "expense") map[e.category] = (map[e.category] || 0) + e.amount; }
     const arr = Object.entries(map).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
     const max = arr.length ? arr[0].amount : 0;
     return { arr, max };
-  }, [monthEntries]);
+  }, [household]);
 
   const trend = useMemo(() => {
     const months = [];
     for (let i = 5; i >= 0; i--) months.push(shiftMonth(curMonth(), -i));
     const data = months.map((m) => {
-      const exp = entries.filter((e) => e.type === "expense" && (e.date || "").startsWith(m)).reduce((s, e) => s + e.amount, 0);
+      const exp = entries.filter((e) => e.type === "expense" && !isPersonal(e) && (e.date || "").startsWith(m)).reduce((s, e) => s + e.amount, 0);
       return { m, exp };
     });
     const max = Math.max(1, ...data.map((d) => d.exp));
@@ -212,13 +215,13 @@ function Ledger({ myPerson }) {
             </div>
           </section>
 
-          {/* 내역 리스트 */}
+          {/* 내역 리스트 (공용만) */}
           <section style={card}>
-            <h2 style={h2}>내역 <span style={{ color: "#b3a99a", fontSize: 13, fontWeight: 500 }}>{monthEntries.length}건</span></h2>
-            {loading ? <p style={empty}>불러오는 중…</p> : monthEntries.length === 0 ? (
-              <p style={empty}>내역이 없어요. + 버튼으로 추가해 보세요!</p>
+            <h2 style={h2}>공용 내역 <span style={{ color: "#b3a99a", fontSize: 13, fontWeight: 500 }}>{household.length}건</span></h2>
+            {loading ? <p style={empty}>불러오는 중…</p> : household.length === 0 ? (
+              <p style={empty}>이번 달 공용 내역이 없어요.</p>
             ) : (
-              monthEntries.map((e) => (
+              household.map((e) => (
                 <div key={e.id} style={entryRow}>
                   <span style={{ fontSize: 20 }}>{CAT_EMOJI[e.category] || "📦"}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
