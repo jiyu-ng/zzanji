@@ -10,9 +10,13 @@ const CAT_EMOJI = {
 const CAT_COLOR = ["#e8865a", "#5aa7e8", "#63c187", "#c77dd6", "#e0b64a", "#e8724a", "#7d8fd6", "#9aa0a6", "#d69a7d", "#7dc7c0"];
 
 // 지출 대상(누구를 위해). 대표님/현욱님 = 개인 지출(본인 용돈), 나머지 = 공용.
-const BENEFICIARIES = ["온가족", "부부", "유찬이", "대표님", "현욱님"];
-const BEN_EMOJI = { 온가족: "👨‍👩‍👦", 부부: "💑", 유찬이: "👶", 대표님: "👩", 현욱님: "👨" };
+const BENEFICIARIES = ["온가족", "부부", "유찬이", "콩떡이", "대표님", "현욱님"];
+const BEN_EMOJI = { 온가족: "👨‍👩‍👦", 부부: "💑", 유찬이: "👶", 콩떡이: "🐱", 대표님: "👩", 현욱님: "👨" };
 const WHO_EMOJI = { 대표님: "👩", 현욱님: "👨" };
+const CARD_EMOJI = { 우리카드: "💳", 토스모임카드: "🤝", 현대카드: "🚗", "IBK 계좌이체": "🏦", 미지정: "❓" };
+// 앱 표시용 이름 (데이터는 '대표님', 화면엔 '지유님')
+const disp = (s) => (s === "대표님" ? "지유님" : s);
+const emojiFor = (k) => BEN_EMOJI[k] || WHO_EMOJI[k] || CARD_EMOJI[k] || "";
 const PERSONAL = ["대표님", "현욱님"]; // 개인 용돈에 카운트되는 대상
 const isPersonal = (e) => PERSONAL.includes(e.beneficiary); // 개인 용돈 지출 여부
 const ALLOWANCE = 500000; // 1인 월 개인 용돈 예산
@@ -118,17 +122,10 @@ function Ledger({ myPerson }) {
     entries.filter((e) => e.beneficiary === myPerson).reduce((s, e) => s + (e.type === "income" ? e.amount : -e.amount), 0),
   [entries, myPerson]);
 
-  // [분석] 탭: 카드별/주체별/대상별 (이번 달 지출)
+  // [분석] 탭: 이번 달 지출 원본 (차트가 자체 그룹핑)
   const analysis = useMemo(() => {
     const exp = monthEntries.filter((e) => e.type === "expense");
-    const total = exp.reduce((s, e) => s + e.amount, 0);
-    const grp = (field, fallback) => {
-      const map = {};
-      for (const e of exp) { const k = e[field] || fallback; map[k] = (map[k] || 0) + e.amount; }
-      const arr = Object.entries(map).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
-      return { arr, max: arr.length ? arr[0].v : 0 };
-    };
-    return { total, byCard: grp("card", "미지정"), byWho: grp("who", "미지정"), byBen: grp("beneficiary", "미지정") };
+    return { exp, total: exp.reduce((s, e) => s + e.amount, 0) };
   }, [monthEntries]);
 
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
@@ -159,10 +156,15 @@ function Ledger({ myPerson }) {
 
   return (
     <div style={wrap}>
+      <style>{`
+        @keyframes donutPop { from { opacity:0; transform: rotate(-16deg) scale(.72) } to { opacity:1; transform: none } }
+        @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+        @keyframes rowIn { from { opacity:0; transform: translateX(-10px) } to { opacity:1; transform: none } }
+      `}</style>
       <header style={head}>
         <div style={{ fontSize: 26 }}>🥬</div>
         <h1 style={h1}>짠지</h1>
-        <p style={{ margin: "3px 0 0", color: "#b3a99a", fontSize: 12.5 }}>유찬이네 가계부 · {myPerson}</p>
+        <p style={{ margin: "3px 0 0", color: "#b3a99a", fontSize: 12.5 }}>유찬이네 가계부 · {disp(myPerson)}</p>
         <button style={refreshBtn} onClick={load} title="새로고침">{loading ? "⏳" : "🔄"}</button>
         <button style={logoutBtn} onClick={() => supabase.auth.signOut()}>로그아웃</button>
       </header>
@@ -246,7 +248,7 @@ function Ledger({ myPerson }) {
                     <div style={{ fontSize: 14.5, fontWeight: 600 }}>{e.item || e.category}</div>
                     <div style={{ fontSize: 11.5, color: "#b3a99a" }}>
                       {e.date?.slice(5).replace("-", ".")} · {e.category}
-                      {e.beneficiary ? ` · ${BEN_EMOJI[e.beneficiary] || ""}${e.beneficiary}` : ""}
+                      {e.beneficiary ? ` · ${BEN_EMOJI[e.beneficiary] || ""}${disp(e.beneficiary)}` : ""}
                     </div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>
@@ -263,7 +265,7 @@ function Ledger({ myPerson }) {
         <>
           {/* 용돈 통장 잔고 */}
           <section style={{ ...card, textAlign: "center" }}>
-            <div style={{ fontSize: 12.5, color: "#8a8170", fontWeight: 600, marginBottom: 4 }}>💳 {myPerson} 용돈 통장 잔고</div>
+            <div style={{ fontSize: 12.5, color: "#8a8170", fontWeight: 600, marginBottom: 4 }}>💳 {disp(myPerson)} 용돈 통장 잔고</div>
             <div style={{ fontSize: 30, fontWeight: 800, color: myBalance < 0 ? "#d9663f" : "#4a4438" }}>{won(myBalance)}</div>
           </section>
 
@@ -310,10 +312,10 @@ function Ledger({ myPerson }) {
             <span style={{ color: "#8a8170", fontSize: 13 }}>이번 달 전체 지출</span>
             <span style={{ fontSize: 20, fontWeight: 800, color: "#4a4438" }}>{won(analysis.total)}</span>
           </div>
-          <BarChart title="💳 카드별 지출" data={analysis.byCard} total={analysis.total} />
-          <BarChart title="👤 소비 주체별 (누가 썼나)" data={analysis.byWho} total={analysis.total} emoji={WHO_EMOJI} />
-          <BarChart title="🎯 소비 대상별 (누구 위해)" data={analysis.byBen} total={analysis.total} emoji={BEN_EMOJI} />
-          <p style={{ ...empty, fontSize: 12 }}>* 나에게 보이는 지출 기준 (배우자 개인 지출 제외)</p>
+          <DonutChart title="💳 카드별 지출" field="card" exp={analysis.exp} />
+          <DonutChart title="👤 소비 주체별 (누가 썼나)" field="who" exp={analysis.exp} />
+          <DonutChart title="🎯 소비 대상별 (누구 위해)" field="beneficiary" exp={analysis.exp} />
+          <p style={{ ...empty, fontSize: 12 }}>💡 항목을 누르면 자세히 볼 수 있어요 · 나에게 보이는 지출 기준</p>
         </>
       )}
 
@@ -354,11 +356,11 @@ function Ledger({ myPerson }) {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
                   {BENEFICIARIES.map((b) => (
                     <button key={b} onClick={() => setForm((f) => ({ ...f, beneficiary: b }))}
-                      style={{ ...catChip, ...(form.beneficiary === b ? catChipOn : {}) }}>{BEN_EMOJI[b]} {b}</button>
+                      style={{ ...catChip, ...(form.beneficiary === b ? catChipOn : {}) }}>{BEN_EMOJI[b]} {disp(b)}</button>
                   ))}
                 </div>
                 {PERSONAL.includes(form.beneficiary) && (
-                  <p style={{ fontSize: 11.5, color: "#b3a99a", margin: "0 2px 12px" }}>💡 개인 지출로 기록돼서 {form.beneficiary} 용돈에서 차감돼요.</p>
+                  <p style={{ fontSize: 11.5, color: "#b3a99a", margin: "0 2px 12px" }}>💡 개인 지출로 기록돼서 {disp(form.beneficiary)} 용돈에서 차감돼요.</p>
                 )}
               </>
             )}
@@ -417,26 +419,93 @@ function NotAllowed({ email }) {
   );
 }
 
-// 분석 탭 막대 차트
-function BarChart({ title, data, total, emoji }) {
+// 분석 탭 도넛 차트 (인터랙티브 드릴다운)
+const shortWon = (n) => n >= 10000 ? (n / 10000).toFixed(n % 10000 === 0 ? 0 : 1) + "만" : n.toLocaleString("ko-KR");
+const FIELD_LABEL = { card: "카드", who: "소비 주체", beneficiary: "소비 대상" };
+
+function groupExp(exp, field) {
+  const map = {};
+  for (const e of exp) { const k = e[field] || "미지정"; map[k] = (map[k] || 0) + e.amount; }
+  const arr = Object.entries(map).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
+  return { arr, total: arr.reduce((s, r) => s + r.v, 0) };
+}
+
+function MiniBars({ exp, field }) {
+  const g = groupExp(exp, field);
+  const mx = g.arr.length ? g.arr[0].v : 1;
+  return (
+    <div style={{ marginTop: 9 }}>
+      <div style={{ fontSize: 11.5, color: "#8a8170", fontWeight: 700, margin: "0 0 6px" }}>{FIELD_LABEL[field]}별</div>
+      {g.arr.map((r, i) => (
+        <div key={r.k} style={{ marginBottom: 7 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}>
+            <span>{emojiFor(r.k)} {disp(r.k)}</span>
+            <span style={{ fontWeight: 700 }}>{won(r.v)}</span>
+          </div>
+          <div style={{ ...barTrack, height: 6 }}>
+            <div style={{ ...barFill, width: `${(r.v / mx) * 100}%`, background: CAT_COLOR[i % CAT_COLOR.length] }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DonutChart({ title, field, exp }) {
+  const [open, setOpen] = useState(null);
+  const data = groupExp(exp, field);
+  const total = data.total;
+  const others = ["card", "who", "beneficiary"].filter((f) => f !== field);
+  const size = 168, sw = 26, R = (size - sw) / 2, cx = size / 2, C = 2 * Math.PI * R;
+  let acc = 0;
   return (
     <section style={card}>
-      <h2 style={h2}>{title}</h2>
+      <h2 style={{ ...h2, marginBottom: 14 }}>{title}</h2>
       {data.arr.length === 0 ? (
         <p style={empty}>이번 달 내역이 없어요.</p>
       ) : (
-        data.arr.map((r, i) => (
-          <div key={r.k} style={{ marginBottom: 11 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, marginBottom: 4 }}>
-              <span>{emoji && emoji[r.k] ? emoji[r.k] + " " : ""}{r.k}
-                {total ? <span style={{ color: "#b3a99a", fontSize: 12 }}> · {Math.round((r.v / total) * 100)}%</span> : null}</span>
-              <span style={{ fontWeight: 700 }}>{won(r.v)}</span>
-            </div>
-            <div style={barTrack}>
-              <div style={{ ...barFill, width: `${(r.v / data.max) * 100}%`, background: CAT_COLOR[i % CAT_COLOR.length] }} />
+        <>
+          <div style={{ position: "relative", width: size, height: size, margin: "0 auto 16px", animation: "donutPop .6s cubic-bezier(.34,1.56,.64,1) both" }}>
+            <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+              {data.arr.map((r, i) => {
+                const dash = (total ? r.v / total : 0) * C;
+                const el = (
+                  <circle key={r.k} cx={cx} cy={cx} r={R} fill="none"
+                    stroke={CAT_COLOR[i % CAT_COLOR.length]} strokeWidth={sw}
+                    strokeDasharray={`${dash} ${C - dash}`} strokeDashoffset={`${-acc}px`}
+                    strokeLinecap={data.arr.length > 1 ? "butt" : "round"}
+                    style={{ animation: "fadeIn .6s ease both", animationDelay: `${0.15 + i * 0.1}s` }} />
+                );
+                acc += dash;
+                return el;
+              })}
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", animation: "fadeIn .5s ease .45s both" }}>
+              <span style={{ fontSize: 11, color: "#b3a99a" }}>합계</span>
+              <span style={{ fontSize: 19, fontWeight: 800, color: "#4a4438" }}>{shortWon(total)}</span>
             </div>
           </div>
-        ))
+          {data.arr.map((r, i) => {
+            const isOpen = open === r.k;
+            const sub = exp.filter((e) => (e[field] || "미지정") === r.k);
+            return (
+              <div key={r.k} style={{ borderBottom: i < data.arr.length - 1 ? "1px solid #f4efe8" : "none", animation: "rowIn .45s ease both", animationDelay: `${0.3 + i * 0.07}s` }}>
+                <div onClick={() => setOpen(isOpen ? null : r.k)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", cursor: "pointer" }}>
+                  <span style={{ width: 11, height: 11, borderRadius: 4, background: CAT_COLOR[i % CAT_COLOR.length], flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>{emojiFor(r.k)} {disp(r.k)}</span>
+                  <span style={{ fontSize: 12, color: "#b3a99a", fontWeight: 700, minWidth: 34, textAlign: "right" }}>{total ? Math.round((r.v / total) * 100) : 0}%</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 800, minWidth: 70, textAlign: "right" }}>{won(r.v)}</span>
+                  <span style={{ fontSize: 10, color: "#c9beb0", display: "inline-block", width: 12, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .2s" }}>▶</span>
+                </div>
+                {isOpen && (
+                  <div style={{ padding: "0 4px 12px 20px", animation: "fadeIn .3s ease both" }}>
+                    {others.map((f) => <MiniBars key={f} exp={sub} field={f} />)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </>
       )}
     </section>
   );
