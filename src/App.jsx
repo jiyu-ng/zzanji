@@ -18,9 +18,10 @@ const CARD_EMOJI = { 우리카드: "💳", 토스모임카드: "🤝", 현대카
 const disp = (s) => (s === "대표님" ? "지유님" : s);
 const emojiFor = (k) => BEN_EMOJI[k] || WHO_EMOJI[k] || CARD_EMOJI[k] || "";
 const PERSONAL = ["대표님", "현욱님"]; // 개인 용돈에 카운트되는 대상
-const isPersonal = (e) => PERSONAL.includes(e.beneficiary); // 개인 용돈 지출 여부(가계부 탭 제외용)
-// 공용/타인 카드 — 용돈 통장 잔고 계산에서 제외 (대상은 본인이어도 본인 돈 아님)
-const SHARED_CARDS = ["현대카드", "토스모임카드", "법인카드"];
+// 프라이버시·용돈 판별 = '카드(누구 돈)' 기준. 개인카드 소유자 매핑.
+const CARD_OWNER = { "우리카드": "대표님", "IBK 계좌이체": "대표님", "IBK 계좌": "대표님", "카카오뱅크": "현욱님" };
+const cardOwner = (e) => CARD_OWNER[e.card] || null; // 개인카드면 소유자, 공용카드/null이면 null(공용)
+const isPersonal = (e) => cardOwner(e) != null; // 누군가의 개인카드 지출(가계부 탭 제외용)
 const ALLOWANCE = 500000; // 1인 월 개인 용돈 예산
 
 // 이메일 → 사람 매핑 (RLS의 current_person()과 동일 규칙)
@@ -119,8 +120,8 @@ function Ledger({ myPerson }) {
   }, [entries]);
 
   // 개인 용돈: 내가 대상인 지출 (RLS로 상대 개인지출은 애초에 안 옴)
-  // 용돈 = 본인 대상 + 본인 통장(공용/타인카드 제외)
-  const isMyAllowance = (e) => e.beneficiary === myPerson && !SHARED_CARDS.includes(e.card);
+  // 용돈 = 내 개인카드(우리카드/IBK, 현욱=카카오뱅크) 흐름 (누구 돈 기준)
+  const isMyAllowance = (e) => cardOwner(e) === myPerson;
   const myPersonal = useMemo(() => {
     const list = monthEntries.filter(isMyAllowance);
     const spent = list.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
