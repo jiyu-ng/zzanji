@@ -92,8 +92,8 @@ function Ledger({ myPerson }) {
   }, [load]);
 
   const monthEntries = useMemo(() => entries.filter((e) => (e.date || "").startsWith(month)), [entries, month]);
-  // [가계부] 탭 = 공용 살림만 (개인 용돈은 [용돈] 탭에서 따로)
-  const household = useMemo(() => monthEntries.filter((e) => !isPersonal(e)), [monthEntries]);
+  // [가계부] 탭 = 공용 살림만 (개인 용돈 제외, '제외' 카테고리 제외 - 큰 일회성/엄마집 등)
+  const household = useMemo(() => monthEntries.filter((e) => !isPersonal(e) && e.category !== "제외"), [monthEntries]);
   const totals = useMemo(() => {
     let expense = 0, income = 0;
     for (const e of household) { if (e.type === "income") income += e.amount; else expense += e.amount; }
@@ -112,7 +112,7 @@ function Ledger({ myPerson }) {
     const months = [];
     for (let i = 5; i >= 0; i--) months.push(shiftMonth(curMonth(), -i));
     const data = months.map((m) => {
-      const exp = entries.filter((e) => e.type === "expense" && !isPersonal(e) && (e.date || "").startsWith(m)).reduce((s, e) => s + e.amount, 0);
+      const exp = entries.filter((e) => e.type === "expense" && !isPersonal(e) && e.category !== "제외" && (e.date || "").startsWith(m)).reduce((s, e) => s + e.amount, 0);
       return { m, exp };
     });
     const max = Math.max(1, ...data.map((d) => d.exp));
@@ -121,7 +121,7 @@ function Ledger({ myPerson }) {
 
   // 개인 용돈: 내가 대상인 지출 (RLS로 상대 개인지출은 애초에 안 옴)
   // 용돈 = 내 개인카드(우리카드/IBK, 현욱=카카오뱅크) 흐름 (누구 돈 기준)
-  const isMyAllowance = (e) => cardOwner(e) === myPerson;
+  const isMyAllowance = (e) => cardOwner(e) === myPerson && e.category !== "제외";
   const myPersonal = useMemo(() => {
     const list = monthEntries.filter(isMyAllowance);
     const spent = list.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
@@ -134,7 +134,7 @@ function Ledger({ myPerson }) {
 
   // [분석] 탭: 이번 달 지출 원본 (차트가 자체 그룹핑)
   const analysis = useMemo(() => {
-    const exp = monthEntries.filter((e) => e.type === "expense");
+    const exp = monthEntries.filter((e) => e.type === "expense" && e.category !== "제외");
     return { exp, total: exp.reduce((s, e) => s + e.amount, 0) };
   }, [monthEntries]);
 
