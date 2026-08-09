@@ -416,11 +416,11 @@ function Ledger({ myPerson }) {
               ))}
             </div>
 
-            <input inputMode="numeric" placeholder="금액 (예: 6000)" value={form.amount}
+            <input inputMode="numeric" aria-label="금액" placeholder="금액 (예: 6000)" value={form.amount}
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))}
               style={{ ...input, fontSize: 20, fontWeight: 800, textAlign: "center" }} autoFocus />
 
-            <input placeholder="항목 (예: 스타벅스)" value={form.item}
+            <input aria-label="항목" placeholder="항목 (예: 스타벅스)" value={form.item}
               onChange={(e) => setForm((f) => ({ ...f, item: e.target.value }))} style={input} />
 
             <div style={{ fontSize: 12.5, color: "#8a8170", margin: "6px 2px 6px", fontWeight: 600 }}>카테고리</div>
@@ -446,7 +446,7 @@ function Ledger({ myPerson }) {
               </>
             )}
 
-            <input type="date" value={form.date} max={todayStr()}
+            <input type="date" aria-label="날짜" value={form.date} max={todayStr()}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} style={input} />
 
             <button style={{ ...saveBtn, opacity: saving ? 0.6 : 1 }} disabled={saving} onClick={submit}>
