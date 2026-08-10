@@ -188,7 +188,7 @@ function Ledger({ myPerson }) {
         <div style={{ fontSize: 26 }}>🥬</div>
         <h1 style={h1}>짠지</h1>
         <p style={{ margin: "3px 0 0", color: "#b3a99a", fontSize: 12.5 }}>유찬이네 가계부 · {disp(myPerson)}</p>
-        <button style={refreshBtn} onClick={load} title="새로고침">{loading ? "⏳" : "🔄"}</button>
+        <button style={refreshBtn} onClick={load} title="새로고침" aria-label="새로고침">{loading ? "⏳" : "🔄"}</button>
         <button style={logoutBtn} onClick={() => supabase.auth.signOut()}>로그아웃</button>
       </header>
 
@@ -201,9 +201,9 @@ function Ledger({ myPerson }) {
 
       {/* 월 선택 */}
       <div style={monthBar}>
-        <button style={arrow} onClick={() => setMonth((m) => shiftMonth(m, -1))}>‹</button>
+        <button style={arrow} onClick={() => setMonth((m) => shiftMonth(m, -1))} aria-label="이전 달">‹</button>
         <span style={{ fontWeight: 800, fontSize: 16 }}>{monthLabel(month)}</span>
-        <button style={arrow} onClick={() => setMonth((m) => shiftMonth(m, 1))} disabled={month >= curMonth()}>›</button>
+        <button style={arrow} onClick={() => setMonth((m) => shiftMonth(m, 1))} disabled={month >= curMonth()} aria-label="다음 달">›</button>
       </div>
 
       {tab === "ledger" && (
@@ -277,7 +277,7 @@ function Ledger({ myPerson }) {
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>
                     {e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}
                   </span>
-                  <button onClick={() => remove(e.id)} style={delBtn}>×</button>
+                  <button onClick={() => remove(e.id)} style={delBtn} aria-label="삭제">×</button>
                 </div>
               ))
             )}
@@ -320,7 +320,7 @@ function Ledger({ myPerson }) {
                     <div style={{ fontSize: 11.5, color: "#b3a99a" }}>{e.date?.slice(5).replace("-", ".")} · {e.category}</div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>{e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}</span>
-                  <button onClick={() => remove(e.id)} style={delBtn}>×</button>
+                  <button onClick={() => remove(e.id)} style={delBtn} aria-label="삭제">×</button>
                 </div>
               ))
             )}
@@ -401,7 +401,7 @@ function Ledger({ myPerson }) {
       )}
 
       {/* 추가 버튼 */}
-      <button style={fab} onClick={() => { setForm((f) => ({ ...f, date: todayStr(), amount: "", item: "" })); setAdding(true); }}>+</button>
+      <button style={fab} onClick={() => { setForm((f) => ({ ...f, date: todayStr(), amount: "", item: "" })); setAdding(true); }} aria-label="거래 추가">+</button>
 
       {/* 입력 시트 */}
       {adding && (
