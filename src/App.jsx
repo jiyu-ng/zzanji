@@ -151,6 +151,14 @@ function Ledger({ myPerson }) {
     return { latest, totalKRW, profitKRW, trend, max: Math.max(1, ...trend.map((t) => t.v)) };
   }, [assets]);
 
+  // 입력 시트 열려 있을 때 Esc 키로 닫기 (접근성·UX)
+  useEffect(() => {
+    if (!adding) return;
+    const onKey = (e) => { if (e.key === "Escape") setAdding(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [adding]);
+
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
 
   const submit = async () => {
@@ -406,7 +414,7 @@ function Ledger({ myPerson }) {
       {/* 입력 시트 */}
       {adding && (
         <div style={overlay} onClick={() => setAdding(false)}>
-          <div style={sheet} onClick={(e) => e.stopPropagation()}>
+          <div style={sheet} role="dialog" aria-modal="true" aria-label="내역 추가" onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 800, fontSize: 17, textAlign: "center", marginBottom: 16 }}>내역 추가</div>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
