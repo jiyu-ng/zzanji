@@ -427,6 +427,11 @@ function Ledger({ myPerson }) {
             <input inputMode="numeric" aria-label="금액" placeholder="금액 (예: 6000)" value={form.amount}
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))}
               style={{ ...input, fontSize: 20, fontWeight: 800, textAlign: "center" }} autoFocus />
+            {form.amount && (
+              <div aria-hidden="true" style={{ textAlign: "center", fontSize: 12.5, color: "#8a8170", fontWeight: 700, margin: "-4px 0 8px" }}>
+                {Number(form.amount).toLocaleString("ko-KR")}원
+              </div>
+            )}
 
             <input aria-label="항목" placeholder="항목 (예: 스타벅스)" value={form.item}
               onChange={(e) => setForm((f) => ({ ...f, item: e.target.value }))} style={input} />
