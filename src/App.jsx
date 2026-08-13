@@ -151,12 +151,17 @@ function Ledger({ myPerson }) {
     return { latest, totalKRW, profitKRW, trend, max: Math.max(1, ...trend.map((t) => t.v)) };
   }, [assets]);
 
-  // 입력 시트 열려 있을 때 Esc 키로 닫기 (접근성·UX)
+  // 입력 시트 열려 있을 때: Esc 키로 닫기 + 배경 스크롤 잠금 (접근성·모바일 UX)
   useEffect(() => {
     if (!adding) return;
     const onKey = (e) => { if (e.key === "Escape") setAdding(false); };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [adding]);
 
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
