@@ -467,7 +467,7 @@ function Ledger({ myPerson }) {
             <input type="date" aria-label="날짜" value={form.date} max={todayStr()}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} style={input} />
 
-            <button style={{ ...saveBtn, opacity: saving ? 0.6 : 1 }} disabled={saving} onClick={submit}>
+            <button style={{ ...saveBtn, opacity: (saving || !form.amount) ? 0.6 : 1 }} disabled={saving || !form.amount} onClick={submit}>
               {saving ? "저장 중…" : "저장하기"}
             </button>
           </div>
