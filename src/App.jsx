@@ -424,7 +424,7 @@ function Ledger({ myPerson }) {
 
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {[["expense", "지출"], ["income", "수입"]].map(([t, label]) => (
-                <button key={t} onClick={() => setForm((f) => ({ ...f, type: t, category: (t === "income" ? INCOME_CATS : EXPENSE_CATS)[0] }))}
+                <button key={t} aria-pressed={form.type === t} onClick={() => setForm((f) => ({ ...f, type: t, category: (t === "income" ? INCOME_CATS : EXPENSE_CATS)[0] }))}
                   style={{ ...typeBtn, ...(form.type === t ? (t === "income" ? typeIncomeOn : typeExpenseOn) : {}) }}>{label}</button>
               ))}
             </div>
@@ -444,7 +444,7 @@ function Ledger({ myPerson }) {
             <div style={{ fontSize: 12.5, color: "#8a8170", margin: "6px 2px 6px", fontWeight: 600 }}>카테고리</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
               {cats.map((c) => (
-                <button key={c} onClick={() => setForm((f) => ({ ...f, category: c }))}
+                <button key={c} aria-pressed={form.category === c} onClick={() => setForm((f) => ({ ...f, category: c }))}
                   style={{ ...catChip, ...(form.category === c ? catChipOn : {}) }}>{CAT_EMOJI[c]} {c}</button>
               ))}
             </div>
@@ -454,7 +454,7 @@ function Ledger({ myPerson }) {
                 <div style={{ fontSize: 12.5, color: "#8a8170", margin: "6px 2px 6px", fontWeight: 600 }}>누구를 위해? (대상)</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
                   {BENEFICIARIES.map((b) => (
-                    <button key={b} onClick={() => setForm((f) => ({ ...f, beneficiary: b }))}
+                    <button key={b} aria-pressed={form.beneficiary === b} onClick={() => setForm((f) => ({ ...f, beneficiary: b }))}
                       style={{ ...catChip, ...(form.beneficiary === b ? catChipOn : {}) }}>{BEN_EMOJI[b]} {disp(b)}</button>
                   ))}
                 </div>
