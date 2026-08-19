@@ -422,7 +422,7 @@ function Ledger({ myPerson }) {
           <div style={sheet} role="dialog" aria-modal="true" aria-label="내역 추가" onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 800, fontSize: 17, textAlign: "center", marginBottom: 16 }}>내역 추가</div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            <div role="group" aria-label="유형 선택" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {[["expense", "지출"], ["income", "수입"]].map(([t, label]) => (
                 <button key={t} aria-pressed={form.type === t} onClick={() => setForm((f) => ({ ...f, type: t, category: (t === "income" ? INCOME_CATS : EXPENSE_CATS)[0] }))}
                   style={{ ...typeBtn, ...(form.type === t ? (t === "income" ? typeIncomeOn : typeExpenseOn) : {}) }}>{label}</button>
@@ -445,7 +445,7 @@ function Ledger({ myPerson }) {
               enterKeyHint="done" style={input} />
 
             <div style={{ fontSize: 12.5, color: "#8a8170", margin: "6px 2px 6px", fontWeight: 600 }}>카테고리</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
+            <div role="group" aria-label="카테고리 선택" style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
               {cats.map((c) => (
                 <button key={c} aria-pressed={form.category === c} onClick={() => setForm((f) => ({ ...f, category: c }))}
                   style={{ ...catChip, ...(form.category === c ? catChipOn : {}) }}>{CAT_EMOJI[c]} {c}</button>
@@ -455,7 +455,7 @@ function Ledger({ myPerson }) {
             {form.type === "expense" && (
               <>
                 <div style={{ fontSize: 12.5, color: "#8a8170", margin: "6px 2px 6px", fontWeight: 600 }}>누구를 위해? (대상)</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
+                <div role="group" aria-label="대상 선택" style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
                   {BENEFICIARIES.map((b) => (
                     <button key={b} aria-pressed={form.beneficiary === b} onClick={() => setForm((f) => ({ ...f, beneficiary: b }))}
                       style={{ ...catChip, ...(form.beneficiary === b ? catChipOn : {}) }}>{BEN_EMOJI[b]} {disp(b)}</button>
