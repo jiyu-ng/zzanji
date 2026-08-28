@@ -290,7 +290,7 @@ function Ledger({ myPerson }) {
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>
                     {e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}
                   </span>
-                  <button onClick={() => remove(e.id)} style={delBtn} aria-label="삭제">×</button>
+                  <button onClick={() => remove(e.id)} style={delBtn} aria-label={`${e.item || e.category} ${won(e.amount).replace("₩", "")}원 삭제`}>×</button>
                 </div>
               ))
             )}
@@ -333,7 +333,7 @@ function Ledger({ myPerson }) {
                     <div style={{ fontSize: 11.5, color: "#b3a99a" }}>{e.date?.slice(5).replace("-", ".")} · {e.category}</div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>{e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}</span>
-                  <button onClick={() => remove(e.id)} style={delBtn} aria-label="삭제">×</button>
+                  <button onClick={() => remove(e.id)} style={delBtn} aria-label={`${e.item || e.category} ${won(e.amount).replace("₩", "")}원 삭제`}>×</button>
                 </div>
               ))
             )}
