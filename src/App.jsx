@@ -68,6 +68,7 @@ function Ledger({ myPerson }) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ date: todayStr(), type: "expense", amount: "", category: "식비", item: "", beneficiary: "온가족" });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -154,7 +155,7 @@ function Ledger({ myPerson }) {
   // 입력 시트 열려 있을 때: Esc 키로 닫기 + 배경 스크롤 잠금 (접근성·모바일 UX)
   useEffect(() => {
     if (!adding) return;
-    const onKey = (e) => { if (e.key === "Escape") setAdding(false); };
+    const onKey = (e) => { if (e.key === "Escape") { setAdding(false); setEditingId(null); } };
     document.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -166,6 +167,17 @@ function Ledger({ myPerson }) {
 
   const cats = form.type === "income" ? INCOME_CATS : EXPENSE_CATS;
 
+  const closeSheet = () => { setAdding(false); setEditingId(null); };
+
+  const openEdit = (e) => {
+    setForm({
+      date: e.date, type: e.type, amount: String(e.amount), category: e.category,
+      item: e.item || "", beneficiary: e.beneficiary || "온가족",
+    });
+    setEditingId(e.id);
+    setAdding(true);
+  };
+
   const submit = async () => {
     const amt = parseInt(String(form.amount).replace(/[^0-9]/g, ""), 10);
     if (!amt || amt <= 0) { alert("금액을 입력해 주세요."); return; }
@@ -175,12 +187,15 @@ function Ledger({ myPerson }) {
       item: form.item.trim() || null, who: myPerson,
       beneficiary: form.type === "expense" ? form.beneficiary : "온가족",
     };
-    const { data, error } = await supabase.from("ledger").insert(row).select().single();
+    const q = editingId
+      ? supabase.from("ledger").update(row).eq("id", editingId).select().single()
+      : supabase.from("ledger").insert(row).select().single();
+    const { data, error } = await q;
     setSaving(false);
-    if (error) { alert("저장에 실패했어요. 다시 시도해 주세요."); return; }
-    setEntries((prev) => [data, ...prev]);
+    if (error) { alert(editingId ? "수정에 실패했어요. 다시 시도해 주세요." : "저장에 실패했어요. 다시 시도해 주세요."); return; }
+    setEntries((prev) => editingId ? prev.map((x) => (x.id === editingId ? data : x)) : [data, ...prev]);
     setForm((f) => ({ ...f, amount: "", item: "" }));
-    setAdding(false);
+    closeSheet();
     setMonth(form.date.slice(0, 7));
   };
 
@@ -278,7 +293,9 @@ function Ledger({ myPerson }) {
               <p style={empty}>이번 달 공용 내역이 없어요.</p>
             ) : (
               household.map((e) => (
-                <div key={e.id} style={entryRow}>
+                <div key={e.id} style={{ ...entryRow, cursor: "pointer" }} onClick={() => openEdit(e)} role="button" tabIndex={0}
+                  onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openEdit(e); } }}
+                  aria-label={`${e.item || e.category} 수정`}>
                   <span style={{ fontSize: 20 }}>{CAT_EMOJI[e.category] || "📦"}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14.5, fontWeight: 600 }}>{e.item || e.category}</div>
@@ -290,7 +307,7 @@ function Ledger({ myPerson }) {
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>
                     {e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}
                   </span>
-                  <button onClick={() => remove(e.id)} style={delBtn} aria-label={`${e.item || e.category} ${won(e.amount).replace("₩", "")}원 삭제`}>×</button>
+                  <button onClick={(ev) => { ev.stopPropagation(); remove(e.id); }} style={delBtn} aria-label={`${e.item || e.category} ${won(e.amount).replace("₩", "")}원 삭제`}>×</button>
                 </div>
               ))
             )}
@@ -326,14 +343,16 @@ function Ledger({ myPerson }) {
               <p style={empty}>이번 달 용돈 내역이 없어요. 알뜰하시네요! 🥬</p>
             ) : (
               myPersonal.list.map((e) => (
-                <div key={e.id} style={entryRow}>
+                <div key={e.id} style={{ ...entryRow, cursor: "pointer" }} onClick={() => openEdit(e)} role="button" tabIndex={0}
+                  onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openEdit(e); } }}
+                  aria-label={`${e.item || e.category} 수정`}>
                   <span style={{ fontSize: 20 }}>{CAT_EMOJI[e.category] || "📦"}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14.5, fontWeight: 600 }}>{e.item || e.category}</div>
                     <div style={{ fontSize: 11.5, color: "#b3a99a" }}>{e.date?.slice(5).replace("-", ".")} · {e.category}</div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, color: e.type === "income" ? "#3f8f52" : "#4a4438", whiteSpace: "nowrap" }}>{e.type === "income" ? "+" : "-"}{won(e.amount).replace("₩", "")}</span>
-                  <button onClick={() => remove(e.id)} style={delBtn} aria-label={`${e.item || e.category} ${won(e.amount).replace("₩", "")}원 삭제`}>×</button>
+                  <button onClick={(ev) => { ev.stopPropagation(); remove(e.id); }} style={delBtn} aria-label={`${e.item || e.category} ${won(e.amount).replace("₩", "")}원 삭제`}>×</button>
                 </div>
               ))
             )}
@@ -414,13 +433,13 @@ function Ledger({ myPerson }) {
       )}
 
       {/* 추가 버튼 */}
-      <button style={fab} onClick={() => { setForm((f) => ({ ...f, date: todayStr(), amount: "", item: "" })); setAdding(true); }} aria-label="거래 추가">+</button>
+      <button style={fab} onClick={() => { setEditingId(null); setForm((f) => ({ ...f, date: todayStr(), amount: "", item: "" })); setAdding(true); }} aria-label="거래 추가">+</button>
 
       {/* 입력 시트 */}
       {adding && (
-        <div style={overlay} onClick={() => setAdding(false)}>
-          <div style={sheet} role="dialog" aria-modal="true" aria-label="내역 추가" onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontWeight: 800, fontSize: 17, textAlign: "center", marginBottom: 16 }}>내역 추가</div>
+        <div style={overlay} onClick={closeSheet}>
+          <div style={sheet} role="dialog" aria-modal="true" aria-label={editingId ? "내역 수정" : "내역 추가"} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 800, fontSize: 17, textAlign: "center", marginBottom: 16 }}>{editingId ? "내역 수정" : "내역 추가"}</div>
 
             <div role="group" aria-label="유형 선택" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {[["expense", "지출"], ["income", "수입"]].map(([t, label]) => (
@@ -471,7 +490,7 @@ function Ledger({ myPerson }) {
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} style={input} />
 
             <button style={{ ...saveBtn, opacity: (saving || !form.amount) ? 0.6 : 1 }} disabled={saving || !form.amount} onClick={submit}>
-              {saving ? "저장 중…" : "저장하기"}
+              {saving ? (editingId ? "수정 중…" : "저장 중…") : (editingId ? "수정하기" : "저장하기")}
             </button>
           </div>
         </div>
