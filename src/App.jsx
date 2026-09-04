@@ -367,9 +367,9 @@ function Ledger({ myPerson }) {
             <span style={{ color: "#8a8170", fontSize: 13 }}>이번 달 전체 지출</span>
             <span style={{ fontSize: 20, fontWeight: 800, color: "#4a4438" }}>{won(analysis.total)}</span>
           </div>
-          <DonutChart title="💳 카드별 지출" field="card" exp={analysis.exp} />
-          <DonutChart title="👤 소비 주체별 (누가 썼나)" field="who" exp={analysis.exp} />
-          <DonutChart title="🎯 소비 대상별 (누구 위해)" field="beneficiary" exp={analysis.exp} />
+          <DonutChart title="💳 카드별 지출" field="card" exp={analysis.exp} onEdit={openEdit} />
+          <DonutChart title="👤 소비 주체별 (누가 썼나)" field="who" exp={analysis.exp} onEdit={openEdit} />
+          <DonutChart title="🎯 소비 대상별 (누구 위해)" field="beneficiary" exp={analysis.exp} onEdit={openEdit} />
           <p style={{ ...empty, fontSize: 12 }}>💡 항목을 누르면 자세히 볼 수 있어요 · 나에게 보이는 지출 기준</p>
         </>
       )}
@@ -549,28 +549,56 @@ function groupExp(exp, field) {
   return { arr, total: arr.reduce((s, r) => s + r.v, 0) };
 }
 
-function MiniBars({ exp, field }) {
+function MiniBars({ exp, field, onEdit }) {
+  const [openK, setOpenK] = useState(null);
   const g = groupExp(exp, field);
   const mx = g.arr.length ? g.arr[0].v : 1;
   return (
     <div style={{ marginTop: 9 }}>
       <div style={{ fontSize: 11.5, color: "#8a8170", fontWeight: 700, margin: "0 0 6px" }}>{FIELD_LABEL[field]}별</div>
-      {g.arr.map((r, i) => (
-        <div key={r.k} style={{ marginBottom: 7 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}>
-            <span>{emojiFor(r.k)} {disp(r.k)}</span>
-            <span style={{ fontWeight: 700 }}>{won(r.v)}</span>
+      {g.arr.map((r, i) => {
+        const isOpen = openK === r.k;
+        const rows = exp.filter((e) => (e[field] || "미지정") === r.k)
+          .slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+        return (
+          <div key={r.k} style={{ marginBottom: 7 }}>
+            <div onClick={() => setOpenK(isOpen ? null : r.k)} role="button" tabIndex={0}
+              onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); setOpenK(isOpen ? null : r.k); } }}
+              aria-expanded={isOpen} aria-label={`${disp(r.k)} 내역 ${rows.length}건 보기`}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, fontSize: 12.5, marginBottom: 3, cursor: "pointer" }}>
+              <span>{emojiFor(r.k)} {disp(r.k)}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <span style={{ fontWeight: 700 }}>{won(r.v)}</span>
+                <span style={{ fontSize: 9, color: "#c9beb0", display: "inline-block", width: 10, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .2s" }}>▶</span>
+              </span>
+            </div>
+            <div style={{ ...barTrack, height: 6 }}>
+              <div style={{ ...barFill, width: `${(r.v / mx) * 100}%`, background: CAT_COLOR[i % CAT_COLOR.length] }} />
+            </div>
+            {isOpen && (
+              <div style={{ marginTop: 7, animation: "fadeIn .25s ease both" }}>
+                {rows.map((e) => (
+                  <div key={e.id} onClick={() => onEdit && onEdit(e)} role="button" tabIndex={0}
+                    onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onEdit && onEdit(e); } }}
+                    aria-label={`${e.item || e.category} 수정`}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 9, cursor: onEdit ? "pointer" : "default", background: "#faf7f2", marginBottom: 4 }}>
+                    <span style={{ fontSize: 14 }}>{CAT_EMOJI[e.category] || "📦"}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.item || e.category}</span>
+                    <span style={{ fontSize: 10.5, color: "#b3a99a", flexShrink: 0 }}>{e.date?.slice(5).replace("-", ".")}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{won(e.amount).replace("₩", "")}</span>
+                  </div>
+                ))}
+                {onEdit && <div style={{ fontSize: 10.5, color: "#c0b6a8", padding: "1px 8px 2px" }}>내역을 누르면 수정할 수 있어요</div>}
+              </div>
+            )}
           </div>
-          <div style={{ ...barTrack, height: 6 }}>
-            <div style={{ ...barFill, width: `${(r.v / mx) * 100}%`, background: CAT_COLOR[i % CAT_COLOR.length] }} />
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function DonutChart({ title, field, exp }) {
+function DonutChart({ title, field, exp, onEdit }) {
   const [open, setOpen] = useState(null);
   const data = groupExp(exp, field);
   const total = data.total;
@@ -618,7 +646,7 @@ function DonutChart({ title, field, exp }) {
                 </div>
                 {isOpen && (
                   <div style={{ padding: "0 4px 12px 20px", animation: "fadeIn .3s ease both" }}>
-                    {others.map((f) => <MiniBars key={f} exp={sub} field={f} />)}
+                    {others.map((f) => <MiniBars key={f} exp={sub} field={f} onEdit={onEdit} />)}
                   </div>
                 )}
               </div>
