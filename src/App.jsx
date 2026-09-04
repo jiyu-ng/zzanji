@@ -140,17 +140,20 @@ function Ledger({ myPerson }) {
   }, [monthEntries]);
 
   // [자산] 탭: 계좌별 최신 스냅샷 + 총자산 + 추이
+  // 자산도 선택한 달 기준으로 본다 (그 달의 마지막 스냅샷 · 추이도 그 달 안에서)
   const asset = useMemo(() => {
+    const inMonth = assets.filter((a) => (a.date || "").startsWith(month)); // assets는 date desc
     const byAcct = {};
-    for (const a of assets) { if (!byAcct[a.account]) byAcct[a.account] = a; } // date desc → 첫 등장이 최신
+    for (const a of inMonth) { if (!byAcct[a.account]) byAcct[a.account] = a; } // 첫 등장 = 그 달 마지막 기록
     const latest = Object.values(byAcct);
+    const asOf = latest.reduce((d, a) => (a.date > d ? a.date : d), "");
     const totalKRW = latest.reduce((s, a) => s + (Number(a.total_eval) || 0) + (Number(a.deposit) || 0), 0);
     const profitKRW = latest.reduce((s, a) => s + (Number(a.profit) || 0), 0);
     const byDate = {};
-    for (const a of assets) { byDate[a.date] = (byDate[a.date] || 0) + (Number(a.total_eval) || 0) + (Number(a.deposit) || 0); }
+    for (const a of inMonth) { byDate[a.date] = (byDate[a.date] || 0) + (Number(a.total_eval) || 0) + (Number(a.deposit) || 0); }
     const trend = Object.entries(byDate).map(([d, v]) => ({ d, v })).sort((a, b) => (a.d < b.d ? -1 : 1)).slice(-7);
-    return { latest, totalKRW, profitKRW, trend, max: Math.max(1, ...trend.map((t) => t.v)) };
-  }, [assets]);
+    return { latest, asOf, totalKRW, profitKRW, trend, max: Math.max(1, ...trend.map((t) => t.v)) };
+  }, [assets, month]);
 
   // 입력 시트 열려 있을 때: Esc 키로 닫기 + 배경 스크롤 잠금 (접근성·모바일 UX)
   useEffect(() => {
@@ -376,11 +379,11 @@ function Ledger({ myPerson }) {
       {tab === "asset" && (
         <>
           {asset.latest.length === 0 ? (
-            <section style={card}><p style={empty}>아직 자산 스냅샷이 없어요.<br />토스증권 잔고가 매일 자동으로 쌓일 거예요 📈</p></section>
+            <section style={card}><p style={empty}>{month}에 기록된 자산 스냅샷이 없어요.<br />토스증권 잔고는 매일 아침 자동으로 쌓여요 📈</p></section>
           ) : (
             <>
               <section style={{ ...card, textAlign: "center", background: "linear-gradient(135deg,#4a4438,#6a5f4e)", border: "none", animation: "donutPop .6s cubic-bezier(.34,1.56,.64,1) both" }}>
-                <div style={{ fontSize: 12.5, color: "#e6ddd2", marginBottom: 4 }}>💎 총 자산</div>
+                <div style={{ fontSize: 12.5, color: "#e6ddd2", marginBottom: 4 }}>💎 총 자산 {asset.asOf ? `· ${asset.asOf.slice(5).replace("-", ".")} 기준` : ""}</div>
                 <div style={{ fontSize: 30, fontWeight: 800, color: "#fff" }}>{won(asset.totalKRW)}</div>
                 <div style={{ fontSize: 13, marginTop: 6, fontWeight: 700, color: asset.profitKRW >= 0 ? "#8fe3ac" : "#ffab8f" }}>
                   평가손익 {asset.profitKRW >= 0 ? "+" : ""}{won(asset.profitKRW)}
