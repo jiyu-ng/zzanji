@@ -481,7 +481,7 @@ function Ledger({ myPerson }) {
                   ))}
                 </div>
                 {PERSONAL.includes(form.beneficiary) && (
-                  <p style={{ fontSize: 11.5, color: "#b3a99a", margin: "0 2px 12px" }}>💡 개인 지출로 기록돼서 {disp(form.beneficiary)} 용돈에서 차감돼요.</p>
+                  <p style={{ fontSize: 11.5, color: "#b3a99a", margin: "0 2px 12px" }}>💡 대상은 기록용이에요. 여기서 넣으면 공용 내역으로 잡히고, 용돈 차감은 개인카드 결제분만 반영돼요.</p>
                 )}
               </>
             )}
