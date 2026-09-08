@@ -665,8 +665,8 @@ function DonutChart({ title, field, exp, onEdit }) {
 const wrap = { maxWidth: 520, margin: "0 auto", minHeight: "100vh", background: "#faf7f2", color: "#4a4438", fontFamily: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif', padding: "0 16px 90px", position: "relative" };
 const head = { textAlign: "center", padding: "24px 0 8px", position: "relative" };
 const h1 = { fontSize: 22, fontWeight: 800, margin: "4px 0 0" };
-const logoutBtn = { position: "absolute", top: 20, right: 4, background: "none", border: "none", color: "#b3a99a", fontSize: 12, cursor: "pointer", textDecoration: "underline" };
-const refreshBtn = { position: "absolute", top: 16, left: 4, background: "none", border: "none", fontSize: 18, cursor: "pointer", lineHeight: 1 };
+const logoutBtn = { position: "absolute", top: 14, right: -2, padding: "6px 6px", background: "none", border: "none", color: "#b3a99a", fontSize: 12, cursor: "pointer", textDecoration: "underline" };
+const refreshBtn = { position: "absolute", top: 10, left: -2, padding: "6px 6px", background: "none", border: "none", fontSize: 18, cursor: "pointer", lineHeight: 1 };
 const tabBar = { display: "flex", gap: 6, marginBottom: 14 };
 const tabBtn = { flex: 1, padding: "9px 0", borderRadius: 11, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" };
 const tabBtnOn = { background: "#4a4438", color: "#fff", borderColor: "#4a4438" };
