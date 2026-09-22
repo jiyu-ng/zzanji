@@ -69,6 +69,13 @@ function Ledger({ myPerson }) {
   const [form, setForm] = useState({ date: todayStr(), type: "expense", amount: "", category: "식비", item: "", beneficiary: "온가족" });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  // 저장 성공 피드백 — 시트가 닫히는 것 말고는 확인할 게 없었다 (표시만, 저장 로직은 그대로)
+  const [toast, setToast] = useState("");
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -197,9 +204,13 @@ function Ledger({ myPerson }) {
     setSaving(false);
     if (error) { alert(editingId ? "수정에 실패했어요. 다시 시도해 주세요." : "저장에 실패했어요. 다시 시도해 주세요."); return; }
     setEntries((prev) => editingId ? prev.map((x) => (x.id === editingId ? data : x)) : [data, ...prev]);
+    // ⚠️ closeSheet() 가 setEditingId(null) 을 부른다. 클로저 덕에 아래에서 읽어도
+    //    옛 값이 남지만 그건 읽는 사람이 모르는 규칙이라, 먼저 잡아둔다.
+    const wasEditing = Boolean(editingId);
     setForm((f) => ({ ...f, amount: "", item: "" }));
     closeSheet();
     setMonth(form.date.slice(0, 7));
+    setToast(`${amt.toLocaleString()}원 ${wasEditing ? "수정" : "저장"}했어요`);
   };
 
   const remove = async (id) => {
@@ -214,7 +225,11 @@ function Ledger({ myPerson }) {
         @keyframes donutPop { from { opacity:0; transform: rotate(-16deg) scale(.72) } to { opacity:1; transform: none } }
         @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
         @keyframes rowIn { from { opacity:0; transform: translateX(-10px) } to { opacity:1; transform: none } }
+        @keyframes toastIn { from { opacity:0; transform: translate(-50%, 12px) } to { opacity:1; transform: translate(-50%, 0) } }
       `}</style>
+      {toast && (
+        <div role="status" aria-live="polite" style={toastBox}>{toast}</div>
+      )}
       <header style={head}>
         <div style={{ fontSize: 26 }}>🥬</div>
         <h1 style={h1}>짠지</h1>
@@ -693,5 +708,13 @@ const typeExpenseOn = { background: "#d9663f", color: "#fff", borderColor: "#d96
 const typeIncomeOn = { background: "#3f8f52", color: "#fff", borderColor: "#3f8f52" };
 const catChip = { border: "1px solid #ece3da", background: "#fff", color: "#6a6155", fontSize: 13, fontWeight: 600, padding: "8px 12px", borderRadius: 999, cursor: "pointer" };
 const catChipOn = { background: "#4a4438", color: "#fff", borderColor: "#4a4438" };
+// 저장 성공 토스트 — 화면 하단 고정. 시트가 닫힌 뒤에 뜨므로 입력을 가리지 않는다.
+const toastBox = {
+  position: "fixed", left: "50%", bottom: 26, zIndex: 60,
+  transform: "translateX(-50%)", animation: "toastIn .18s ease-out",
+  background: "#4a4438", color: "#fff", fontSize: 14.5, fontWeight: 700,
+  padding: "12px 20px", borderRadius: 999, whiteSpace: "nowrap",
+  boxShadow: "0 6px 20px rgba(0,0,0,0.18)", pointerEvents: "none",
+};
 const saveBtn = { width: "100%", marginTop: 6, padding: "15px 0", borderRadius: 14, border: "none", background: "#e8865a", color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer" };
 const googleBtn = { display: "flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 14, border: "1px solid #ece3da", background: "#fff", color: "#4a4438", fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(0,0,0,0.06)" };
