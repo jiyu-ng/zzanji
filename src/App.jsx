@@ -702,7 +702,12 @@ const delBtn = { background: "none", border: "none", color: "#d0c6ba", fontSize:
 const fab = { position: "fixed", right: "max(20px, calc(50% - 260px + 20px))", bottom: 24, width: 58, height: 58, borderRadius: 999, border: "none", background: "#e8865a", color: "#fff", fontSize: 30, fontWeight: 300, cursor: "pointer", boxShadow: "0 6px 18px rgba(232,134,90,0.45)", zIndex: 5 };
 const overlay = { position: "fixed", inset: 0, background: "rgba(40,34,28,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10 };
 const sheet = { width: "100%", maxWidth: 520, background: "#faf7f2", borderRadius: "22px 22px 0 0", padding: "22px 18px calc(24px + env(safe-area-inset-bottom))", maxHeight: "88vh", overflowY: "auto" };
-const input = { width: "100%", boxSizing: "border-box", border: "1.5px solid #ece3da", borderRadius: 12, padding: "13px 14px", fontSize: 15, marginBottom: 10, color: "#4a4438", background: "#fff", outline: "none", fontFamily: "inherit" };
+// 🔴 fontSize 는 16 밑으로 내리지 말 것.
+//    iOS 사파리는 16px 미만 입력칸을 탭하면 화면을 자동으로 확대하고, 그 확대가 풀리지 않는다.
+//    가계부는 장 보면서 폰으로 넣는 앱이라, 한 건 적는 동안 확대가 걸리면 다음 칸부터 다 어긋난다.
+//    금액 칸은 이 상수 위에 fontSize:20 을 덮어써서 원래 안전했고, 걸리는 건 항목·날짜 칸이다.
+//    확인법: 아이폰 사파리에서 「항목」 칸 탭 → 글씨가 커지면 이 값이 16 밑으로 내려간 것.
+const input = { width: "100%", boxSizing: "border-box", border: "1.5px solid #ece3da", borderRadius: 12, padding: "13px 14px", fontSize: 16, marginBottom: 10, color: "#4a4438", background: "#fff", outline: "none", fontFamily: "inherit" };
 const typeBtn = { flex: 1, padding: "11px 0", borderRadius: 12, border: "1px solid #ece3da", background: "#fff", color: "#8a8170", fontSize: 14.5, fontWeight: 700, cursor: "pointer" };
 const typeExpenseOn = { background: "#d9663f", color: "#fff", borderColor: "#d9663f" };
 const typeIncomeOn = { background: "#3f8f52", color: "#fff", borderColor: "#3f8f52" };
