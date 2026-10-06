@@ -527,11 +527,11 @@ function Login() {
     <div style={{ ...wrap, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", paddingBottom: 0 }}>
       <div style={{ fontSize: 46 }}>🥬</div>
       <h1 style={{ fontSize: 24, fontWeight: 800, margin: "12px 0 2px" }}>짠지</h1>
-      <p style={{ color: "#8a8170", fontSize: 14, margin: "0 0 30px" }}>유찬이네 가계부</p>
+      <p style={{ color: "#776f60", fontSize: 14, margin: "0 0 30px" }}>유찬이네 가계부</p>
       <button onClick={signIn} disabled={busy} style={googleBtn}>
         <span style={{ fontSize: 18 }}>🔵</span> {busy ? "이동 중…" : "구글로 로그인"}
       </button>
-      <p style={{ color: "#b3a99a", fontSize: 12, margin: "18px 20px 0", textAlign: "center" }}>대표님·현욱님만 로그인할 수 있어요 🔒</p>
+      <p style={{ color: "#776f60", fontSize: 12, margin: "18px 20px 0", textAlign: "center" }}>대표님·현욱님만 로그인할 수 있어요 🔒</p>
     </div>
   );
 }
@@ -550,7 +550,7 @@ function NotAllowed({ email }) {
     <div style={{ ...wrap, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", paddingBottom: 0, textAlign: "center" }}>
       <div style={{ fontSize: 40 }}>🚫</div>
       <p style={{ color: "#4a4438", fontSize: 15, fontWeight: 700, margin: "12px 20px 4px" }}>접근 권한이 없어요</p>
-      <p style={{ color: "#b3a99a", fontSize: 12.5, margin: "0 20px 24px" }}>{email || ""}<br />이 계정은 유찬이네 가계부 멤버가 아니에요.</p>
+      <p style={{ color: "#776f60", fontSize: 12.5, margin: "0 20px 24px" }}>{email || ""}<br />이 계정은 유찬이네 가계부 멤버가 아니에요.</p>
       <button onClick={() => supabase.auth.signOut()} style={googleBtn}>다른 계정으로</button>
     </div>
   );
