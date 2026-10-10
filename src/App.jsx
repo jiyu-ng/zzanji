@@ -19,7 +19,7 @@ const disp = (s) => (s === "대표님" ? "지유님" : s);
 const emojiFor = (k) => BEN_EMOJI[k] || WHO_EMOJI[k] || CARD_EMOJI[k] || "";
 const PERSONAL = ["대표님", "현욱님"]; // 개인 용돈에 카운트되는 대상
 // 프라이버시·용돈 판별 = '카드(누구 돈)' 기준. 개인카드 소유자 매핑.
-const CARD_OWNER = { "우리카드": "대표님", "IBK 계좌이체": "대표님", "IBK 계좌": "대표님", "카카오페이": "대표님", "카카오페이 생활비계좌": "대표님", "카카오뱅크": "현욱님" };
+const CARD_OWNER = { "우리카드": "대표님", "IBK 계좌이체": "대표님", "IBK 계좌": "대표님", "카카오페이": "대표님", "카카오페이 생활비계좌": "대표님", "현대체크카드": "대표님", "카카오뱅크": "현욱님" };
 const cardOwner = (e) => CARD_OWNER[e.card] || null; // 개인카드면 소유자, 공용카드/null이면 null(공용)
 const isPersonal = (e) => cardOwner(e) != null; // 누군가의 개인카드 지출(가계부 탭 제외용)
 const ALLOWANCE = 500000; // 1인 월 개인 용돈 예산
